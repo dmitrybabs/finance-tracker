@@ -14,6 +14,7 @@ type Tab = 'dashboard' | 'history' | 'analytics';
 export function App() {
   const store = useFinanceStore();
   const [showAddModal, setShowAddModal] = useState(false);
+  const [showClearConfirm, setShowClearConfirm] = useState(false);
   const [activeTab, setActiveTab] = useState<Tab>('dashboard');
 
   const tabs: { id: Tab; label: string; icon: React.ReactNode }[] = [
@@ -22,7 +23,6 @@ export function App() {
     { id: 'analytics', label: 'Аналитика', icon: <PieChart className="w-5 h-5" /> },
   ];
 
-  // ─── Экран загрузки ───
   if (store.loading) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-slate-50 via-gray-50 to-slate-100 flex items-center justify-center">
@@ -39,12 +39,10 @@ export function App() {
     );
   }
 
-  // ─── Пустое состояние ───
   const isEmpty = store.allTransactions.length === 0;
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 via-gray-50 to-slate-100">
-      {/* Header */}
       <header className="bg-white/80 backdrop-blur-xl border-b border-slate-200/60 sticky top-0 z-40">
         <div className="max-w-6xl mx-auto px-4 sm:px-6">
           <div className="flex items-center justify-between h-14 sm:h-16">
@@ -81,10 +79,7 @@ export function App() {
         </div>
       </header>
 
-      {/* Main Content */}
       <main className="max-w-6xl mx-auto px-4 sm:px-6 py-4 sm:py-6 pb-24 sm:pb-6">
-
-        {/* Пустое состояние — предложение загрузить демо */}
         {isEmpty ? (
           <div className="flex flex-col items-center justify-center py-20">
             <div className="w-20 h-20 rounded-2xl bg-gradient-to-br from-indigo-100 to-purple-100 flex items-center justify-center mb-6">
@@ -113,7 +108,6 @@ export function App() {
           </div>
         ) : (
           <>
-            {/* Stat Cards */}
             <div className="mb-5 sm:mb-6">
               <StatCards
                 totalIncome={store.stats.totalIncome}
@@ -124,7 +118,6 @@ export function App() {
               />
             </div>
 
-            {/* Data management buttons */}
             <div className="flex items-center gap-2 mb-5 sm:mb-6">
               <button
                 onClick={store.seedDemoData}
@@ -134,7 +127,7 @@ export function App() {
                 Перегенерить демо
               </button>
               <button
-                onClick={store.clearAllData}
+                onClick={() => setShowClearConfirm(true)}
                 className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-red-600 bg-red-50 rounded-lg hover:bg-red-100 transition-colors"
               >
                 <Trash2 className="w-3.5 h-3.5" />
@@ -142,7 +135,6 @@ export function App() {
               </button>
             </div>
 
-            {/* Tab Content */}
             {activeTab === 'dashboard' && (
               <div className="space-y-5 sm:space-y-6">
                 <div className="grid grid-cols-1 lg:grid-cols-2 gap-5 sm:gap-6">
@@ -190,7 +182,6 @@ export function App() {
         )}
       </main>
 
-      {/* Bottom Navigation (mobile) */}
       <nav className="sm:hidden fixed bottom-0 left-0 right-0 bg-white/90 backdrop-blur-xl border-t border-slate-200/60 z-40">
         <div className="flex items-center justify-around py-2">
           {tabs.map(tab => (
@@ -217,7 +208,6 @@ export function App() {
         </div>
       </nav>
 
-      {/* Desktop Tab Switcher */}
       {!isEmpty && (
         <div className="hidden sm:flex fixed bottom-6 left-1/2 -translate-x-1/2 bg-white/90 backdrop-blur-xl rounded-2xl shadow-lg shadow-slate-200/50 border border-slate-200/60 p-1.5 gap-1 z-40">
           {tabs.map(tab => (
@@ -238,13 +228,43 @@ export function App() {
         </div>
       )}
 
-      {/* Add Transaction Modal */}
       {showAddModal && (
         <AddTransaction
           categories={store.categories}
           onAdd={store.addTransaction}
           onClose={() => setShowAddModal(false)}
         />
+      )}
+
+      {showClearConfirm && (
+        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4" onClick={() => setShowClearConfirm(false)}>
+          <div className="bg-white rounded-2xl p-6 max-w-sm w-full shadow-2xl" onClick={e => e.stopPropagation()}>
+            <div className="w-14 h-14 rounded-full bg-red-100 flex items-center justify-center mx-auto mb-4">
+              <Trash2 className="w-7 h-7 text-red-500" />
+            </div>
+            <h3 className="text-lg font-bold text-slate-800 text-center mb-2">Удалить все данные?</h3>
+            <p className="text-sm text-slate-500 text-center mb-6">
+              Все транзакции будут безвозвратно удалены. Это действие нельзя отменить.
+            </p>
+            <div className="flex gap-3">
+              <button
+                onClick={() => setShowClearConfirm(false)}
+                className="flex-1 px-4 py-2.5 bg-slate-100 text-slate-700 rounded-xl font-semibold text-sm hover:bg-slate-200 transition-colors"
+              >
+                Отмена
+              </button>
+              <button
+                onClick={() => {
+                  store.clearAllData();
+                  setShowClearConfirm(false);
+                }}
+                className="flex-1 px-4 py-2.5 bg-red-500 text-white rounded-xl font-semibold text-sm hover:bg-red-600 transition-colors"
+              >
+                Удалить всё
+              </button>
+            </div>
+          </div>
+        </div>
       )}
     </div>
   );
