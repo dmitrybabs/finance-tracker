@@ -18,10 +18,8 @@ export function useFinanceStore() {
   const [selectedPeriod, setSelectedPeriod] = useState<Period>('month');
   const apiAvailable = useRef(false);
 
-  // ─── Загрузка данных при старте ───
   useEffect(() => {
     loadData();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   async function loadData() {
@@ -34,7 +32,6 @@ export function useFinanceStore() {
       apiAvailable.current = true;
       setTransactions(txs);
     } catch {
-      // API недоступен (локальная разработка) — используем localStorage
       apiAvailable.current = false;
       try {
         const stored = localStorage.getItem(STORAGE_KEY);
@@ -67,14 +64,12 @@ export function useFinanceStore() {
     }
   }
 
-  // ─── Категории ───
   const categories = DEFAULT_CATEGORIES;
 
   const getCategoryById = useCallback((id: string) => {
     return categories.find(c => c.id === id);
   }, [categories]);
 
-  // ─── Добавить транзакцию ───
   const addTransaction = useCallback((
     amount: number,
     type: TransactionType,
@@ -98,7 +93,6 @@ export function useFinanceStore() {
       return updated;
     });
 
-    // Сохраняем в API (fire-and-forget)
     if (apiAvailable.current) {
       fetch('/api/transactions', {
         method: 'POST',
@@ -108,7 +102,6 @@ export function useFinanceStore() {
     }
   }, []);
 
-  // ─── Удалить транзакцию ───
   const deleteTransaction = useCallback((id: string) => {
     setTransactions(prev => {
       const updated = prev.filter(t => t.id !== id);
@@ -121,7 +114,6 @@ export function useFinanceStore() {
     }
   }, []);
 
-  // ─── Загрузить демо-данные ───
   const seedDemoData = useCallback(async () => {
     setLoading(true);
     try {
@@ -137,7 +129,6 @@ export function useFinanceStore() {
       }
     } catch (e) {
       console.error('Seed error:', e);
-      // Fallback
       const sample = generateSampleData();
       setTransactions(sample);
     } finally {
@@ -145,29 +136,19 @@ export function useFinanceStore() {
     }
   }, []);
 
-  // ─── Очистить все данные ───
   const clearAllData = useCallback(async () => {
     setTransactions([]);
     if (apiAvailable.current) {
-      // Удаляем через API — нужен отдельный эндпоинт или удаляем по одному
-      // Проще всего: seed с 0 элементов. Но пока просто вызовем loadData
       try {
-        // Удаляем каждую транзакцию
-        const current = transactions;
-        await Promise.all(
-          current.map(tx =>
-            fetch(`/api/transactions?id=${tx.id}`, { method: 'DELETE' }).catch(() => {})
-          )
-        );
+        await fetch('/api/clear', { method: 'POST' });
       } catch {
         // ignore
       }
     } else {
       localStorage.removeItem(STORAGE_KEY);
     }
-  }, [transactions]);
+  }, []);
 
-  // ─── Фильтрация по периоду ───
   const getStartDate = useCallback((period: Period): Date | null => {
     const now = new Date();
     switch (period) {
@@ -190,7 +171,6 @@ export function useFinanceStore() {
       .sort((a, b) => b.date.localeCompare(a.date));
   }, [transactions, selectedPeriod, getStartDate]);
 
-  // ─── Статистика ───
   const stats = useMemo(() => {
     const totalIncome = filteredTransactions
       .filter(t => t.type === 'income')
@@ -216,7 +196,6 @@ export function useFinanceStore() {
     return totalIncome - totalExpense;
   }, [transactions]);
 
-  // ─── Агрегация по дням ───
   const dailyAggregates = useMemo((): DailyAggregate[] => {
     const start = getStartDate(selectedPeriod);
     const now = new Date();
@@ -247,7 +226,6 @@ export function useFinanceStore() {
     }));
   }, [filteredTransactions, selectedPeriod, getStartDate, transactions]);
 
-  // ─── Агрегация по категориям ───
   const categoryAggregates = useMemo(() => {
     const getAggregates = (type: TransactionType): CategoryAggregate[] => {
       const txs = filteredTransactions.filter(t => t.type === type);
